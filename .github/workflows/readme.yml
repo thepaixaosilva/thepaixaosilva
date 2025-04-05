@@ -1,0 +1,46 @@
+name: auto update
+
+on:
+  schedule:
+    - cron: '*/5 0-23 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+
+    - name: Use Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 20.16
+    - run: npm install
+    - run: npm run build --if-present
+      env:
+        CI: true
+
+    - name: run index.cjs
+      run: |-
+        node index.cjs
+        cat README.md
+
+    - name: commit and push
+      run: |-
+        git config --global user.email "bot-readme@example.com"
+        git config --global user.name "README-bot"
+
+        git pull
+
+        LAST_COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')
+
+        if [[ "$LAST_COMMIT_AUTHOR" == "README-bot" ]]; then
+          git add -A
+          git commit --amend -m "Update README.md"
+          git push --force-with-lease
+        else
+          git add -A
+          git commit -m "Update README.md"
+          git push
+        fi
